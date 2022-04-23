@@ -2,11 +2,14 @@ package main
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/salliko/gofemart/config"
+	"github.com/salliko/gofemart/internal/databases"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,6 +17,13 @@ import (
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) *http.Response {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
+
+	cookie := &http.Cookie{
+		Name:     "user_id",
+		Value:    "aZT57qJnkvCrMQ==",
+		HttpOnly: false,
+	}
+	req.AddCookie(cookie)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -23,13 +33,21 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 }
 
 func TestRouter(t *testing.T) {
-	// cfg := config.Config{
-	// 	RunAddress: "localhost:8080",
-	// }
+	cfg := config.Config{
+		RunAddress:  "localhost:8080",
+		DatabaseURL: "postgres://postgres:postgres@localhost:5432",
+	}
+
+	db, err := databases.NewPostgresqlDatabase(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	type want struct {
 		status int
 		body   string
+		header string
 	}
 
 	tests := []struct {
@@ -43,8 +61,20 @@ func TestRouter(t *testing.T) {
 			name:   "POST user register",
 			path:   "/api/user/register",
 			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
 			want: want{
 				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "POST user register StatusConflict",
+			path:   "/api/user/register",
+			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
+			want: want{
+				status: http.StatusConflict,
+				header: `application/json; charset=UTF-8`,
 			},
 		},
 		{
@@ -97,7 +127,7 @@ func TestRouter(t *testing.T) {
 		},
 	}
 
-	r := NewRouter()
+	r := NewRouter(cfg, db)
 	ts := httptest.NewServer(r)
 	defer ts.Close()
 
