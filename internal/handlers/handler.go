@@ -56,3 +56,42 @@ func UserRegistration(cfg config.Config, db databases.Database) http.HandlerFunc
 		w.Write([]byte("пользователь успешно зарегистрирован и аутентифицирован"))
 	}
 }
+
+func UserAuthentication(cfg config.Config, db databases.Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user databases.User
+
+		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+			log.Print(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		user, err := db.SelectUser(user.Login, user.Password)
+		if err != nil {
+			if errors.Is(err, databases.ErrInvalidUsernamePassword) {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				w.WriteHeader(http.StatusUnauthorized)
+				w.Write([]byte("неверная пара логин/пароль"))
+				return
+			} else {
+				log.Print(err.Error())
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
+
+		if _, err := r.Cookie("user_id"); err != nil {
+			log.Print("Создаем печеньку :)")
+			newCookie := &http.Cookie{
+				Name:  "user_id",
+				Value: user.UserID,
+			}
+			http.SetCookie(w, newCookie)
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("пользователь успешно аутентифицирован"))
+	}
+}

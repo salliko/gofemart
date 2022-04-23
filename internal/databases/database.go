@@ -10,10 +10,11 @@ import (
 )
 
 var ErrLoginConfict = errors.New(`login conglict`)
+var ErrInvalidUsernamePassword = errors.New(`invalid username/password pair`)
 
 type Database interface {
 	CreateUser(string, string, string) (User, error)
-	// SelectUser()
+	SelectUser(string, string) (User, error)
 	HasLogin(string) (bool, error)
 	Close()
 }
@@ -75,6 +76,20 @@ func (p *PostgresqlDatabase) CreateUser(login, password, userID string) (User, e
 
 	err = p.conn.QueryRow(context.Background(), createUser, login, password, userID).Scan(&user.UserID, &user.Login, &user.Password)
 	if err != nil {
+		return user, err
+	}
+
+	return user, nil
+}
+
+func (p *PostgresqlDatabase) SelectUser(login, password string) (User, error) {
+	var user User
+	err := p.conn.QueryRow(context.Background(), selectUser, login, password).Scan(&user.UserID, &user.Login, &user.Password)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return user, ErrInvalidUsernamePassword
+		}
+
 		return user, err
 	}
 

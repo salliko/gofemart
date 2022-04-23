@@ -17,7 +17,7 @@ var (
 	`
 
 	selectUser = `
-		select user_id, login, password where login = $1 and password = $2
+		select user_id, login, password from users where login = $1 and password = $2
 	`
 
 	checkLogin = `

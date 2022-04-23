@@ -58,6 +58,16 @@ func TestRouter(t *testing.T) {
 		want   want
 	}{
 		{
+			name:   "POST user login неверная пара логин/пароль",
+			path:   "/api/user/login",
+			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
+			want: want{
+				status: http.StatusUnauthorized,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
 			name:   "POST user register",
 			path:   "/api/user/register",
 			method: http.MethodPost,
@@ -81,8 +91,10 @@ func TestRouter(t *testing.T) {
 			name:   "POST user login",
 			path:   "/api/user/login",
 			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
 			want: want{
 				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
 			},
 		},
 		{

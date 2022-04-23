@@ -18,9 +18,7 @@ func NewRouter(cfg config.Config, db databases.Database) chi.Router {
 	r.Use(middleware.Logger)
 
 	r.Post("/api/user/register", handlers.UserRegistration(cfg, db))
-	r.Post("/api/user/login", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("login"))
-	})
+	r.Post("/api/user/login", handlers.UserAuthentication(cfg, db))
 
 	r.Route("/api/user", func(r chi.Router) {
 
