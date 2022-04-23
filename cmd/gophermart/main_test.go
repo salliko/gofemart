@@ -18,12 +18,14 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
-	cookie := &http.Cookie{
-		Name:     "user_id",
-		Value:    "aZT57qJnkvCrMQ==",
-		HttpOnly: false,
-	}
-	req.AddCookie(cookie)
+	// if _, err := req.Cookie("user_id"); err != nil {
+	// 	cookie := &http.Cookie{
+	// 		Name:     "user_id",
+	// 		Value:    "aZT57qJnkvCrMQ==",
+	// 		HttpOnly: false,
+	// 	}
+	// 	req.AddCookie(cookie)
+	// }
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -101,8 +103,9 @@ func TestRouter(t *testing.T) {
 			name:   "POST user orders",
 			path:   "/api/user/orders",
 			method: http.MethodPost,
+			body:   "5567876",
 			want: want{
-				status: http.StatusOK,
+				status: http.StatusAccepted,
 			},
 		},
 		{

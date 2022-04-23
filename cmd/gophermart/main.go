@@ -24,9 +24,7 @@ func NewRouter(cfg config.Config, db databases.Database) chi.Router {
 
 		r.Use(middlewares.CheckCookie)
 
-		r.Post("/orders", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("orders"))
-		})
+		r.Post("/orders", handlers.CreateOrder(cfg, db))
 
 		r.Get("/orders", func(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("orders"))
