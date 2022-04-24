@@ -14,21 +14,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var TestCookie *http.Cookie
+
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, body io.Reader) *http.Response {
 	req, err := http.NewRequest(method, ts.URL+path, body)
 	require.NoError(t, err)
 
-	// if _, err := req.Cookie("user_id"); err != nil {
-	// 	cookie := &http.Cookie{
-	// 		Name:     "user_id",
-	// 		Value:    "aZT57qJnkvCrMQ==",
-	// 		HttpOnly: false,
-	// 	}
-	// 	req.AddCookie(cookie)
-	// }
+	if TestCookie != nil {
+		req.AddCookie(TestCookie)
+	}
+
+	if cookie, err := req.Cookie("user_id"); err == nil {
+		log.Print("Читаем куку до запроса")
+		log.Print(cookie.Value)
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
+
+	if len(resp.Cookies()) != 0 {
+		TestCookie = resp.Cookies()[0]
+	}
+
 	require.NoError(t, err)
 
 	return resp
@@ -106,6 +113,15 @@ func TestRouter(t *testing.T) {
 			body:   "5567876",
 			want: want{
 				status: http.StatusAccepted,
+			},
+		},
+		{
+			name:   "POST user orders",
+			path:   "/api/user/orders",
+			method: http.MethodPost,
+			body:   "5567876",
+			want: want{
+				status: http.StatusOK,
 			},
 		},
 		{

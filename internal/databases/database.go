@@ -3,7 +3,7 @@ package databases
 import (
 	"context"
 	"errors"
-	"log"
+	"time"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -14,12 +14,14 @@ var ErrLoginConfict = errors.New(`login conglict`)
 var ErrInvalidUsernamePassword = errors.New(`invalid username/password pair`)
 var ErrOrderWasUploadedBefore = errors.New(`номер заказа уже был загружен этим пользователем`)
 var ErrOrderWasUploadedAnotherUser = errors.New(`номер заказа уже был загружен другим пользователем`)
+var ErrNotFoundOrders = errors.New(`нет данных для ответа`)
 
 type Database interface {
 	CreateUser(string, string, string) (User, error)
 	SelectUser(string, string) (User, error)
 	HasLogin(string) (bool, error)
 	CreateOrder(string, string) error
+	SelectOrders(string) ([]Order, error)
 	Close()
 }
 
@@ -30,10 +32,10 @@ type User struct {
 }
 
 type Order struct {
-	Number     string `json:"number"`
-	Status     string `json:"status"`
-	Accural    int    `json:"accural"`
-	UploadedAt string `json:"uploaded_at"`
+	Number     string    `json:"number"`
+	Status     *string   `json:"status"`
+	Accural    *int      `json:"accural,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at" format:"RFC3339"`
 }
 
 type PostgresqlDatabase struct {
@@ -114,8 +116,6 @@ func (p *PostgresqlDatabase) SelectUser(login, password string) (User, error) {
 }
 
 func (p *PostgresqlDatabase) CreateOrder(number, userID string) error {
-	log.Print(number)
-	log.Print(userID)
 	var uploadedUserID string
 	err := p.conn.QueryRow(context.Background(), checkUploadOrder, number).Scan(&uploadedUserID)
 	if err != nil {
@@ -139,4 +139,30 @@ func (p *PostgresqlDatabase) CreateOrder(number, userID string) error {
 	defer rows.Close()
 
 	return nil
+}
+
+func (p *PostgresqlDatabase) SelectOrders(userID string) ([]Order, error) {
+	var orders []Order
+
+	rows, err := p.conn.Query(context.Background(), selectOrders, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var order Order
+		err := rows.Scan(&order.Number, &order.Status, &order.Accural, &order.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	if len(orders) == 0 {
+		return nil, ErrNotFoundOrders
+	}
+
+	return orders, nil
 }

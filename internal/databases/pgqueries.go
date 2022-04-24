@@ -47,4 +47,12 @@ var (
 		insert into orders (number, id_user)
 		values ($1, (select id from users where user_id = $2))
 	`
+
+	selectOrders = `
+		select number, status, accrual, uploaded_at 
+		from orders
+		left join users on orders.id_user = users.id
+		where users.user_id = $1
+		order by uploaded_at desc
+	`
 )

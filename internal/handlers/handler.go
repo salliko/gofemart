@@ -89,6 +89,13 @@ func UserAuthentication(cfg config.Config, db databases.Database) http.HandlerFu
 				Value: user.UserID,
 			}
 			http.SetCookie(w, newCookie)
+		} else {
+			log.Print("Создаем печеньку с индефикатором пользователя")
+			newCookie := &http.Cookie{
+				Name:  "user_id",
+				Value: user.UserID,
+			}
+			http.SetCookie(w, newCookie)
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -130,5 +137,41 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte("новый номер заказа принят в обработку"))
+	}
+}
+
+func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("user_id")
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		orders, err := db.SelectOrders(cookie.Value)
+		if err != nil {
+			if errors.Is(err, databases.ErrNotFoundOrders) {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				http.Error(w, err.Error(), http.StatusNoContent)
+				return
+			}
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data, err := json.Marshal(orders)
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
 	}
 }
