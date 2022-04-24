@@ -6,11 +6,40 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/salliko/gofemart/config"
 	"github.com/salliko/gofemart/internal/databases"
 	"github.com/salliko/gofemart/internal/datahashes"
 )
+
+func checkLuhn(number string) (bool, error) {
+	sum, err := strconv.Atoi(string(number[len(number)-1]))
+	if err != nil {
+		return false, err
+	}
+
+	parity := len(number) % 2
+
+	for i := len(number) - 2; i >= 0; i-- {
+		summand, err := strconv.Atoi(string(number[i]))
+		if err != nil {
+			return false, err
+		}
+		if i%2 == parity {
+			product := summand * 2
+			if product > 9 {
+				summand = product - 9
+			} else {
+				summand = product
+			}
+		}
+		sum += summand
+	}
+
+	res := (sum % 10) == 0
+	return res, nil
+}
 
 func UserRegistration(cfg config.Config, db databases.Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +140,21 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 		if err != nil {
 			log.Print(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		log.Print(checkLuhn(string(number)))
+
+		isValidNumber, err := checkLuhn(string(number))
+		if err != nil {
+			log.Print(err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if !isValidNumber {
+			log.Print("неверный формат номера заказа")
+			http.Error(w, "неверный формат номера заказа", http.StatusUnprocessableEntity)
 			return
 		}
 
