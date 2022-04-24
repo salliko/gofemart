@@ -301,3 +301,45 @@ func CreateDebit(cfg config.Config, db databases.Database) http.HandlerFunc {
 
 	}
 }
+
+func SelectUserOperations(cfg config.Config, db databases.Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("user_id")
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		withdrawns, err := db.SelectUserOperations(cookie.Value)
+		if err != nil {
+			log.Print(err.Error())
+			if errors.Is(err, databases.ErrNotFoundOperations) {
+				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				w.WriteHeader(http.StatusNoContent)
+				http.Error(w, err.Error(), http.StatusNoContent)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data, err := json.Marshal(withdrawns)
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}

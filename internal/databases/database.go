@@ -18,6 +18,7 @@ var ErrOrderWasUploadedAnotherUser = errors.New(`номер заказа уже 
 var ErrNotFoundOrders = errors.New(`нет данных для ответа`)
 var ErrInsufficientFunds = errors.New(`на счету недостаточно средств`)
 var ErrInvalidOrderNumber = errors.New(`неверный номер заказа`)
+var ErrNotFoundOperations = errors.New(`нет ни одного списания`)
 
 type Database interface {
 	CreateUser(string, string, string) (User, error)
@@ -27,12 +28,14 @@ type Database interface {
 	SelectOrders(string) ([]Order, error)
 	SelectUserBalance(string) (Balance, error)
 	CreateDebit(string, Withdrawn) error
+	SelectUserOperations(string) ([]Withdrawn, error)
 	Close()
 }
 
 type Withdrawn struct {
-	Order string  `json:"order"`
-	Sum   float64 `json:"sum"`
+	Order      string    `json:"order"`
+	Sum        float64   `json:"sum"`
+	UploadedAt time.Time `json:"uploaded_at" format:"RFC3339"`
 }
 
 type User struct {
@@ -249,4 +252,30 @@ func (p *PostgresqlDatabase) CreateDebit(userID string, withdrawn Withdrawn) err
 	defer rows.Close()
 
 	return nil
+}
+
+func (p *PostgresqlDatabase) SelectUserOperations(userID string) ([]Withdrawn, error) {
+	var withdraws []Withdrawn
+
+	rows, err := p.conn.Query(context.Background(), selectUserOperations, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var withdraw Withdrawn
+		err := rows.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.UploadedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		withdraws = append(withdraws, withdraw)
+	}
+
+	if len(withdraws) == 0 {
+		return nil, ErrNotFoundOperations
+	}
+
+	return withdraws, nil
 }

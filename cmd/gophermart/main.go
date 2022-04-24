@@ -28,13 +28,10 @@ func NewRouter(cfg config.Config, db databases.Database) chi.Router {
 
 		r.Get("/orders", handlers.SelectOrders(cfg, db))
 
-		r.Get("/withdrawals", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("withdrawals"))
-		})
-
 		r.Route("/balance", func(r chi.Router) {
 			r.Get("/", handlers.SelectUserBalance(cfg, db))
 			r.Post("/withdraw", handlers.CreateDebit(cfg, db))
+			r.Get("/withdrawals", handlers.SelectUserOperations(cfg, db))
 		})
 
 	})

@@ -66,16 +66,16 @@ func TestRouter(t *testing.T) {
 		body   string
 		want   want
 	}{
-		// {
-		// 	name:   "POST user login неверная пара логин/пароль",
-		// 	path:   "/api/user/login",
-		// 	method: http.MethodPost,
-		// 	body:   `{"login":"test", "password": "1234"}`,
-		// 	want: want{
-		// 		status: http.StatusUnauthorized,
-		// 		header: `application/json; charset=UTF-8`,
-		// 	},
-		// },
+		{
+			name:   "POST user login неверная пара логин/пароль",
+			path:   "/api/user/login",
+			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
+			want: want{
+				status: http.StatusUnauthorized,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
 		{
 			name:   "POST user register",
 			path:   "/api/user/register",
@@ -86,76 +86,44 @@ func TestRouter(t *testing.T) {
 				header: `application/json; charset=UTF-8`,
 			},
 		},
-		// {
-		// 	name:   "POST user register StatusConflict",
-		// 	path:   "/api/user/register",
-		// 	method: http.MethodPost,
-		// 	body:   `{"login":"test", "password": "1234"}`,
-		// 	want: want{
-		// 		status: http.StatusConflict,
-		// 		header: `application/json; charset=UTF-8`,
-		// 	},
-		// },
-		// {
-		// 	name:   "POST user login",
-		// 	path:   "/api/user/login",
-		// 	method: http.MethodPost,
-		// 	body:   `{"login":"test", "password": "1234"}`,
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 		header: `application/json; charset=UTF-8`,
-		// 	},
-		// },
-		// {
-		// 	name:   "POST user orders",
-		// 	path:   "/api/user/orders",
-		// 	method: http.MethodPost,
-		// 	body:   "5567876",
-		// 	want: want{
-		// 		status: http.StatusAccepted,
-		// 	},
-		// },
-		// {
-		// 	name:   "POST user orders",
-		// 	path:   "/api/user/orders",
-		// 	method: http.MethodPost,
-		// 	body:   "5567876",
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 	},
-		// },
-		// {
-		// 	name:   "GET user orders",
-		// 	path:   "/api/user/orders",
-		// 	method: http.MethodGet,
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 	},
-		// },
-		// {
-		// 	name:   "GET user withdrawals",
-		// 	path:   "/api/user/withdrawals",
-		// 	method: http.MethodGet,
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 	},
-		// },
-		// {
-		// 	name:   "GET user balance",
-		// 	path:   "/api/user/balance",
-		// 	method: http.MethodGet,
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 	},
-		// },
-		// {
-		// 	name:   "POST user balance withdraw",
-		// 	path:   "/api/user/balance/withdraw",
-		// 	method: http.MethodPost,
-		// 	want: want{
-		// 		status: http.StatusOK,
-		// 	},
-		// },
+		{
+			name:   "POST user register StatusConflict",
+			path:   "/api/user/register",
+			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
+			want: want{
+				status: http.StatusConflict,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "POST user login",
+			path:   "/api/user/login",
+			method: http.MethodPost,
+			body:   `{"login":"test", "password": "1234"}`,
+			want: want{
+				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "POST user orders",
+			path:   "/api/user/orders",
+			method: http.MethodPost,
+			body:   "5567876",
+			want: want{
+				status: http.StatusAccepted,
+			},
+		},
+		{
+			name:   "POST user orders",
+			path:   "/api/user/orders",
+			method: http.MethodPost,
+			body:   "5567876",
+			want: want{
+				status: http.StatusOK,
+			},
+		},
 	}
 
 	r := NewRouter(cfg, db)

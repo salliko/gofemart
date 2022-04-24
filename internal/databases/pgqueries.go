@@ -121,4 +121,17 @@ var (
 			$3
 		)
 	`
+
+	selectUserOperations = `
+		select 
+			orders.number,
+			operations.amount,
+			operations.uploaded_at
+		from operations
+		left join orders on orders.id = operations.order_id
+		left join user_balances ub on ub.id = operations.balance_id
+		left join users on users.id = ub.id_user
+		where users.user_id = $1
+		order by operations.uploaded_at desc
+	`
 )
