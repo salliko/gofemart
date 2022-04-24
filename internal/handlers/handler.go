@@ -188,6 +188,7 @@ func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
 		if err != nil {
 			log.Print(err.Error())
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -196,11 +197,13 @@ func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
 		if err != nil {
 			if errors.Is(err, databases.ErrNotFoundOrders) {
 				w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+				w.WriteHeader(http.StatusNoContent)
 				http.Error(w, err.Error(), http.StatusNoContent)
 				return
 			}
 			log.Print(err.Error())
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -209,6 +212,7 @@ func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
 		if err != nil {
 			log.Print(err.Error())
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
