@@ -143,8 +143,6 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 			return
 		}
 
-		log.Print(checkLuhn(string(number)))
-
 		isValidNumber, err := checkLuhn(string(number))
 		if err != nil {
 			log.Print(err.Error())
