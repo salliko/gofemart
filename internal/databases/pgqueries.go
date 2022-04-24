@@ -21,6 +21,26 @@ var (
 		)
 	`
 
+	createTableUserBalances = `
+		create table if not exists user_balances (
+			id serial primary key not null,
+			id_user int references users(id),
+			balance double precision default 500,
+			uploaded_at timestamp default now()
+		)
+	`
+
+	createTableOperations = `
+		create table if not exists operations (
+			id serial primary key not null,
+			balance_id int references user_balances(id),
+			order_id int references orders(id),
+			type varchar(10) default 'debit',
+			amount double precision,
+			uploaded_at timestamp default now()
+		)
+	`
+
 	createUser = `
 		insert into users (login, password, user_id)
 		values ($1, $2, $3)
@@ -54,5 +74,51 @@ var (
 		left join users on orders.id_user = users.id
 		where users.user_id = $1
 		order by uploaded_at desc
+	`
+
+	createDefaultUserBalance = `
+		insert into user_balances (id_user) values ((select id from users where user_id = $1))
+	`
+
+	selectUserBalance = `
+		select 
+			ub.balance,
+			coalesce(sum(amount), 0)
+		from users u
+		left join user_balances ub on u.id = ub.id_user
+		left join operations op on op.balance_id = ub.id
+		where u.user_id = $1
+		group by ub.balance
+	`
+
+	selectUserBalanceAndOrder = `
+			select
+			ub.balance,
+			orders.number
+		from users
+		left join user_balances ub on ub.id_user = users.id
+		left join orders on orders.id_user = users.id
+		where users.user_id = $1
+		and orders.number = $2
+	`
+
+	updateUserBalance = `
+		update user_balances 
+			set balance=$1 
+		where 
+			id_user = (select id from users where user_id = $2)
+	`
+
+	insertOperation = `
+		insert into operations (
+			balance_id, 
+			order_id, 
+			amount
+		)
+		values (
+			(select id from user_balances where id_user = (select id from users where user_id = $1)),
+			(select id from orders where number = $2),
+			$3
+		)
 	`
 )

@@ -3,6 +3,7 @@ package databases
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -15,6 +16,8 @@ var ErrInvalidUsernamePassword = errors.New(`invalid username/password pair`)
 var ErrOrderWasUploadedBefore = errors.New(`номер заказа уже был загружен этим пользователем`)
 var ErrOrderWasUploadedAnotherUser = errors.New(`номер заказа уже был загружен другим пользователем`)
 var ErrNotFoundOrders = errors.New(`нет данных для ответа`)
+var ErrInsufficientFunds = errors.New(`на счету недостаточно средств`)
+var ErrInvalidOrderNumber = errors.New(`неверный номер заказа`)
 
 type Database interface {
 	CreateUser(string, string, string) (User, error)
@@ -22,7 +25,14 @@ type Database interface {
 	HasLogin(string) (bool, error)
 	CreateOrder(string, string) error
 	SelectOrders(string) ([]Order, error)
+	SelectUserBalance(string) (Balance, error)
+	CreateDebit(string, Withdrawn) error
 	Close()
+}
+
+type Withdrawn struct {
+	Order string  `json:"order"`
+	Sum   float64 `json:"sum"`
 }
 
 type User struct {
@@ -36,6 +46,11 @@ type Order struct {
 	Status     *string   `json:"status"`
 	Accural    *int      `json:"accural,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at" format:"RFC3339"`
+}
+
+type Balance struct {
+	Current   float64 `json:"current"`
+	Withdrawn float64 `json:"withdrawn"`
 }
 
 type PostgresqlDatabase struct {
@@ -55,6 +70,18 @@ func NewPostgresqlDatabase(cfg config.Config) (*PostgresqlDatabase, error) {
 	defer rows.Close()
 
 	rows, err = conn.Query(context.Background(), createTableOrders)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rows, err = conn.Query(context.Background(), createTableUserBalances)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	rows, err = conn.Query(context.Background(), createTableOperations)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +124,12 @@ func (p *PostgresqlDatabase) CreateUser(login, password, userID string) (User, e
 	if err != nil {
 		return user, err
 	}
+
+	rows, err := p.conn.Query(context.Background(), createDefaultUserBalance, userID)
+	if err != nil {
+		return user, err
+	}
+	defer rows.Close()
 
 	return user, nil
 }
@@ -165,4 +198,55 @@ func (p *PostgresqlDatabase) SelectOrders(userID string) ([]Order, error) {
 	}
 
 	return orders, nil
+}
+
+func (p *PostgresqlDatabase) SelectUserBalance(userID string) (Balance, error) {
+	var balance Balance
+	err := p.conn.QueryRow(context.Background(), selectUserBalance, userID).Scan(&balance.Current, &balance.Withdrawn)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return balance, err
+		}
+	}
+
+	return balance, nil
+}
+
+func (p *PostgresqlDatabase) CreateDebit(userID string, withdrawn Withdrawn) error {
+	var numberOrder string
+	var balance float64
+	err := p.conn.QueryRow(
+		context.Background(),
+		selectUserBalanceAndOrder,
+		userID,
+		withdrawn.Order).Scan(&balance, &numberOrder)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrInvalidOrderNumber
+		} else {
+			return err
+		}
+	}
+
+	debit := balance - withdrawn.Sum
+
+	if debit < 0 {
+		return ErrInsufficientFunds
+	}
+
+	rows, err := p.conn.Query(context.Background(), updateUserBalance, debit, userID)
+	if err != nil {
+		log.Print("tut")
+		return err
+	}
+	defer rows.Close()
+
+	rows, err = p.conn.Query(context.Background(), insertOperation, userID, numberOrder, withdrawn.Sum)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	return nil
 }

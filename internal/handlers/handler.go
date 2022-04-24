@@ -221,3 +221,83 @@ func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
 		w.Write(data)
 	}
 }
+
+func SelectUserBalance(cfg config.Config, db databases.Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("user_id")
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		balance, err := db.SelectUserBalance(cookie.Value)
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data, err := json.Marshal(balance)
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
+
+func CreateDebit(cfg config.Config, db databases.Database) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var withdrawn databases.Withdrawn
+
+		if err := json.NewDecoder(r.Body).Decode(&withdrawn); err != nil {
+			log.Print(err.Error())
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		cookie, err := r.Cookie("user_id")
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = db.CreateDebit(cookie.Value, withdrawn)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
+			switch {
+			case errors.Is(err, databases.ErrInsufficientFunds):
+				w.WriteHeader(http.StatusPaymentRequired)
+				http.Error(w, err.Error(), http.StatusPaymentRequired)
+				return
+			case errors.Is(err, databases.ErrInvalidOrderNumber):
+				w.WriteHeader(http.StatusUnprocessableEntity)
+				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
+				return
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("успешная обработка запроса"))
+
+	}
+}

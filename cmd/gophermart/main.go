@@ -33,12 +33,8 @@ func NewRouter(cfg config.Config, db databases.Database) chi.Router {
 		})
 
 		r.Route("/balance", func(r chi.Router) {
-			r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("balance"))
-			})
-			r.Post("/withdraw", func(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("withdraw"))
-			})
+			r.Get("/", handlers.SelectUserBalance(cfg, db))
+			r.Post("/withdraw", handlers.CreateDebit(cfg, db))
 		})
 
 	})
