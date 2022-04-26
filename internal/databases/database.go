@@ -3,7 +3,6 @@ package databases
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v4"
@@ -26,6 +25,7 @@ type Database interface {
 	HasLogin(string) (bool, error)
 	CreateOrder(string, string) error
 	SelectOrders(string) ([]Order, error)
+	UpdateOrder(string, Order) error
 	SelectUserBalance(string) (Balance, error)
 	CreateDebit(string, Withdrawn) error
 	SelectUserOperations(string) ([]Withdrawn, error)
@@ -203,6 +203,31 @@ func (p *PostgresqlDatabase) SelectOrders(userID string) ([]Order, error) {
 	return orders, nil
 }
 
+func (p *PostgresqlDatabase) UpdateOrder(userID string, order Order) error {
+	rows, err := p.conn.Query(context.Background(), updateOrder, order.Status, order.Accural, order.Number)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var balance float64
+	err = p.conn.QueryRow(context.Background(), selectUserOnlyBalance, userID).Scan(&balance)
+
+	if err != nil {
+		return err
+	}
+
+	credit := balance + float64(*order.Accural)
+
+	rows, err = p.conn.Query(context.Background(), updateUserBalance, credit, userID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	return nil
+}
+
 func (p *PostgresqlDatabase) SelectUserBalance(userID string) (Balance, error) {
 	var balance Balance
 	err := p.conn.QueryRow(context.Background(), selectUserBalance, userID).Scan(&balance.Current, &balance.Withdrawn)
@@ -240,7 +265,6 @@ func (p *PostgresqlDatabase) CreateDebit(userID string, withdrawn Withdrawn) err
 
 	rows, err := p.conn.Query(context.Background(), updateUserBalance, debit, userID)
 	if err != nil {
-		log.Print("tut")
 		return err
 	}
 	defer rows.Close()

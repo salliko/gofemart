@@ -25,7 +25,7 @@ var (
 		create table if not exists user_balances (
 			id serial primary key not null,
 			id_user int references users(id),
-			balance double precision default 500,
+			balance double precision default 0,
 			uploaded_at timestamp default now()
 		)
 	`
@@ -68,6 +68,13 @@ var (
 		values ($1, (select id from users where user_id = $2))
 	`
 
+	updateOrder = `
+		update orders set 
+			status = $1,
+			accrual = $2
+		where number = $3
+	`
+
 	selectOrders = `
 		select number, status, accrual, uploaded_at 
 		from orders
@@ -78,6 +85,11 @@ var (
 
 	createDefaultUserBalance = `
 		insert into user_balances (id_user) values ((select id from users where user_id = $1))
+	`
+
+	selectUserOnlyBalance = `
+		select balance from user_balances 
+		where id_user = (select id from users where user_id = $1)
 	`
 
 	selectUserBalance = `

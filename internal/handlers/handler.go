@@ -3,12 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/salliko/gofemart/config"
+	"github.com/salliko/gofemart/internal/accural"
 	"github.com/salliko/gofemart/internal/databases"
 	"github.com/salliko/gofemart/internal/datahashes"
 )
@@ -176,6 +178,22 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		go func(userID, number string) {
+			URL := fmt.Sprintf("%s/%s", cfg.ActualSystemAddress, number)
+			order, err := accural.GetAccural(URL)
+			if err != nil {
+				log.Print(err.Error())
+				return
+			}
+
+			err = db.UpdateOrder(userID, order)
+			if err != nil {
+				log.Print(err.Error())
+				return
+			}
+
+		}(cookie.Value, string(number))
 
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte("новый номер заказа принят в обработку"))
