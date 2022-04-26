@@ -180,7 +180,7 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 		}
 
 		go func(userID, number string) {
-			URL := fmt.Sprintf("%s/%s", cfg.ActualSystemAddress, number)
+			URL := fmt.Sprintf("%s/api/orders/%s", cfg.ActualSystemAddress, number)
 			order, err := accural.GetAccural(URL)
 			if err != nil {
 				log.Print(err.Error())
