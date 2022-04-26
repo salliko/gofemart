@@ -17,6 +17,7 @@ func GetAccural(URL string) (databases.Order, error) {
 	if err != nil {
 		return order, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
 		if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
@@ -24,6 +25,8 @@ func GetAccural(URL string) (databases.Order, error) {
 			return order, err
 		}
 	} else {
+		log.Print(resp.StatusCode)
+		log.Print(resp.Body)
 		return order, ErrAnother
 	}
 
