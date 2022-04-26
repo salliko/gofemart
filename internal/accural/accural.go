@@ -27,6 +27,7 @@ func GetAccural(URL string) (databases.Order, error) {
 	} else {
 		log.Print(resp.StatusCode)
 		log.Print(resp.Body)
+		log.Print(URL)
 		return order, ErrAnother
 	}
 
