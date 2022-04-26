@@ -179,7 +179,7 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 			return
 		}
 
-		go func(userID, number string) {
+		go func(userID, number string, cfg config.Config, db databases.Database) {
 			URL := fmt.Sprintf("%s/api/orders/%s", cfg.ActualSystemAddress, number)
 			order, err := accural.GetAccural(URL)
 			if err != nil {
@@ -193,7 +193,7 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 				return
 			}
 
-		}(cookie.Value, string(number))
+		}(cookie.Value, string(number), cfg, db)
 
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte("новый номер заказа принят в обработку"))

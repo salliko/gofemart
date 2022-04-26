@@ -15,7 +15,7 @@ var (
 			id serial primary key not null,
 			number varchar(250) not null,
 			status varchar(15) default 'NEW',
-			accrual int,
+			accrual int default 0,
 			id_user int references users(id),
 			uploaded_at timestamp default now()
 		)

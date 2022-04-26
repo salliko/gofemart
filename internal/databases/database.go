@@ -46,8 +46,8 @@ type User struct {
 
 type Order struct {
 	Number     string    `json:"number"`
-	Status     *string   `json:"status"`
-	Accural    *int      `json:"accural,omitempty"`
+	Status     string    `json:"status"`
+	Accural    int       `json:"accural,omitempty"`
 	UploadedAt time.Time `json:"uploaded_at" format:"RFC3339"`
 }
 
@@ -217,7 +217,7 @@ func (p *PostgresqlDatabase) UpdateOrder(userID string, order Order) error {
 		return err
 	}
 
-	credit := balance + float64(*order.Accural)
+	credit := balance + float64(order.Accural)
 
 	rows, err = p.conn.Query(context.Background(), updateUserBalance, credit, userID)
 	if err != nil {
