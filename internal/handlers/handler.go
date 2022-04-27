@@ -141,6 +141,8 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 
 		if err != nil {
 			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -148,12 +150,16 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 		isValidNumber, err := checkLuhn(string(number))
 		if err != nil {
 			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		if !isValidNumber {
 			log.Print("неверный формат номера заказа")
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusUnprocessableEntity)
 			http.Error(w, "неверный формат номера заказа", http.StatusUnprocessableEntity)
 			return
 		}
@@ -161,20 +167,27 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 		cookie, err := r.Cookie("user_id")
 		if err != nil {
 			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		err = db.CreateOrder(string(number), cookie.Value)
 		if err != nil {
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+
 			if errors.Is(err, databases.ErrOrderWasUploadedBefore) {
+				w.WriteHeader(http.StatusOK)
 				http.Error(w, err.Error(), http.StatusOK)
 				return
 			}
 			if errors.Is(err, databases.ErrOrderWasUploadedAnotherUser) {
+				w.WriteHeader(http.StatusConflict)
 				http.Error(w, err.Error(), http.StatusConflict)
 				return
 			}
+			w.WriteHeader(http.StatusBadRequest)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -195,6 +208,7 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 
 		}(cookie.Value, string(number), cfg, db)
 
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusAccepted)
 		w.Write([]byte("новый номер заказа принят в обработку"))
 	}

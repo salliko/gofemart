@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -106,22 +108,120 @@ func TestRouter(t *testing.T) {
 				header: `application/json; charset=UTF-8`,
 			},
 		},
+	}
+
+	r := NewRouter(cfg, db)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := testRequest(t, ts, tt.method, tt.path, strings.NewReader(tt.body))
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.status, resp.StatusCode)
+			if tt.want.body != "" {
+				assert.Equal(t, tt.want.body, string(body))
+			}
+		})
+	}
+}
+
+func TestOrders(t *testing.T) {
+	cfg := config.Config{
+		RunAddress:  "localhost:8080",
+		DatabaseURL: "postgres://postgres:postgres@localhost:5432",
+	}
+
+	db, err := databases.NewPostgresqlDatabase(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	type want struct {
+		status int
+		body   string
+		header string
+	}
+
+	tests := []struct {
+		name   string
+		path   string
+		method string
+		body   string
+		want   want
+	}{
 		{
-			name:   "POST user orders",
-			path:   "/api/user/orders",
+			name:   "POST user register",
+			path:   "/api/user/register",
 			method: http.MethodPost,
-			body:   "5567876",
+			body:   `{"login":"test_order", "password": "1234"}`,
 			want: want{
-				status: http.StatusAccepted,
+				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "GET user orders not data",
+			path:   "/api/user/orders",
+			method: http.MethodGet,
+			want: want{
+				status: http.StatusNoContent,
+				header: `application/json; charset=UTF-8`,
 			},
 		},
 		{
 			name:   "POST user orders",
 			path:   "/api/user/orders",
 			method: http.MethodPost,
-			body:   "5567876",
+			body:   "8103301",
+			want: want{
+				status: http.StatusAccepted,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "POST user orders",
+			path:   "/api/user/orders",
+			method: http.MethodPost,
+			body:   "8103301",
 			want: want{
 				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "GET user orders",
+			path:   "/api/user/orders",
+			method: http.MethodGet,
+			want: want{
+				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+				body:   `{"number": "8103301","status":"NEW"}`,
+			},
+		},
+		{
+			name:   "POST user register",
+			path:   "/api/user/register",
+			method: http.MethodPost,
+			body:   `{"login":"test_order_another", "password": "1234"}`,
+			want: want{
+				status: http.StatusOK,
+				header: `application/json; charset=UTF-8`,
+			},
+		},
+		{
+			name:   "POST user orders",
+			path:   "/api/user/orders",
+			method: http.MethodPost,
+			body:   "8103301",
+			want: want{
+				status: http.StatusConflict,
+				header: `application/json; charset=UTF-8`,
 			},
 		},
 	}
@@ -140,7 +240,13 @@ func TestRouter(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want.status, resp.StatusCode)
 			if tt.want.body != "" {
-				assert.Equal(t, tt.want.body, string(body))
+				var orders []databases.Order
+				err = json.NewDecoder(bytes.NewReader(body)).Decode(&orders)
+				assert.NoError(t, err)
+				assert.Equal(t, 1, len(orders))
+			}
+			if tt.want.header != "" {
+				assert.Equal(t, tt.want.header, resp.Header.Get("Content-Type"))
 			}
 		})
 	}
