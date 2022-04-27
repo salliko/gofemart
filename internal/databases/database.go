@@ -25,7 +25,7 @@ type Database interface {
 	HasLogin(string) (bool, error)
 	CreateOrder(string, string) error
 	SelectOrders(string) ([]Order, error)
-	UpdateOrder(string, Order) error
+	UpdateOrder(string, AccuralOrder) error
 	SelectUserBalance(string) (Balance, error)
 	CreateDebit(string, Withdrawn) error
 	SelectUserOperations(string) ([]Withdrawn, error)
