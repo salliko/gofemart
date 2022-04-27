@@ -210,7 +210,7 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 
 		}(cookie.Value, string(number), cfg, db)
 
-		log.Print("CreateOrder: ", number)
+		log.Print("CreateOrder: ", string(number), " user: ", cookie.Value)
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusAccepted)
