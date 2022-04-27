@@ -51,6 +51,12 @@ type Order struct {
 	UploadedAt time.Time `json:"uploaded_at" format:"RFC3339"`
 }
 
+type AccuralOrder struct {
+	Order   string `json:"order"`
+	Status  string `json:"status"`
+	Accural int    `json:"accural,omitempty"`
+}
+
 type Balance struct {
 	Current   float64 `json:"current"`
 	Withdrawn float64 `json:"withdrawn"`
@@ -203,8 +209,8 @@ func (p *PostgresqlDatabase) SelectOrders(userID string) ([]Order, error) {
 	return orders, nil
 }
 
-func (p *PostgresqlDatabase) UpdateOrder(userID string, order Order) error {
-	rows, err := p.conn.Query(context.Background(), updateOrder, order.Status, order.Accural, order.Number)
+func (p *PostgresqlDatabase) UpdateOrder(userID string, order AccuralOrder) error {
+	rows, err := p.conn.Query(context.Background(), updateOrder, order.Status, order.Accural, order.Order)
 	if err != nil {
 		return err
 	}

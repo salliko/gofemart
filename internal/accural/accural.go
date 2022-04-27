@@ -13,9 +13,9 @@ import (
 
 var ErrAnother = errors.New(`прочая ошибка`)
 
-func GetAccural(URL string) (databases.Order, error) {
+func GetAccural(URL string) (databases.AccuralOrder, error) {
 	log.Print("accural: выполняем запрос на URL: ", URL)
-	var order databases.Order
+	var order databases.AccuralOrder
 	resp, err := http.Get(URL)
 	if err != nil {
 		log.Println("ошибка на GET ", URL, err)
