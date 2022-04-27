@@ -83,6 +83,8 @@ func UserRegistration(cfg config.Config, db databases.Database) http.HandlerFunc
 
 		http.SetCookie(w, newCookie)
 
+		log.Print("UserRegistration: ", user, newCookie)
+
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("пользователь успешно зарегистрирован и аутентифицирован"))
@@ -207,6 +209,8 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 			}
 
 		}(cookie.Value, string(number), cfg, db)
+
+		log.Print("CreateOrder: ", number)
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusAccepted)

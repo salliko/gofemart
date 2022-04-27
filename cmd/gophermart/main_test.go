@@ -132,8 +132,9 @@ func TestRouter(t *testing.T) {
 
 func TestOrders(t *testing.T) {
 	cfg := config.Config{
-		RunAddress:  "localhost:8080",
-		DatabaseURL: "postgres://postgres:postgres@localhost:5432",
+		RunAddress:          "localhost:8080",
+		DatabaseURL:         "postgres://postgres:postgres@localhost:5432",
+		ActualSystemAddress: "http://localhost:8080",
 	}
 
 	db, err := databases.NewPostgresqlDatabase(cfg)
