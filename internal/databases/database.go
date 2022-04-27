@@ -16,7 +16,6 @@ var ErrOrderWasUploadedBefore = errors.New(`номер заказа уже бы�
 var ErrOrderWasUploadedAnotherUser = errors.New(`номер заказа уже был загружен другим пользователем`)
 var ErrNotFoundOrders = errors.New(`нет данных для ответа`)
 var ErrInsufficientFunds = errors.New(`на счету недостаточно средств`)
-var ErrInvalidOrderNumber = errors.New(`неверный номер заказа`)
 var ErrNotFoundOperations = errors.New(`нет ни одного списания`)
 
 type Database interface {
@@ -247,20 +246,11 @@ func (p *PostgresqlDatabase) SelectUserBalance(userID string) (Balance, error) {
 }
 
 func (p *PostgresqlDatabase) CreateDebit(userID string, withdrawn Withdrawn) error {
-	var numberOrder string
 	var balance float64
-	err := p.conn.QueryRow(
-		context.Background(),
-		selectUserBalanceAndOrder,
-		userID,
-		withdrawn.Order).Scan(&balance, &numberOrder)
+	err := p.conn.QueryRow(context.Background(), selectUserOnlyBalance, userID).Scan(&balance)
 
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrInvalidOrderNumber
-		} else {
-			return err
-		}
+		return err
 	}
 
 	debit := balance - withdrawn.Sum
@@ -275,7 +265,13 @@ func (p *PostgresqlDatabase) CreateDebit(userID string, withdrawn Withdrawn) err
 	}
 	defer rows.Close()
 
-	rows, err = p.conn.Query(context.Background(), insertOperation, userID, numberOrder, withdrawn.Sum)
+	rows, err = p.conn.Query(context.Background(), createOrder, withdrawn.Order, userID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	rows, err = p.conn.Query(context.Background(), insertOperation, userID, withdrawn.Order, withdrawn.Sum)
 	if err != nil {
 		return err
 	}

@@ -315,6 +315,23 @@ func CreateDebit(cfg config.Config, db databases.Database) http.HandlerFunc {
 			return
 		}
 
+		isValidNumber, err := checkLuhn(withdrawn.Order)
+		if err != nil {
+			log.Print(err.Error())
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if !isValidNumber {
+			log.Print("неверный формат номера заказа")
+			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			http.Error(w, "неверный формат номера заказа", http.StatusUnprocessableEntity)
+			return
+		}
+
 		err = db.CreateDebit(cookie.Value, withdrawn)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
@@ -323,10 +340,6 @@ func CreateDebit(cfg config.Config, db databases.Database) http.HandlerFunc {
 			case errors.Is(err, databases.ErrInsufficientFunds):
 				w.WriteHeader(http.StatusPaymentRequired)
 				http.Error(w, err.Error(), http.StatusPaymentRequired)
-				return
-			case errors.Is(err, databases.ErrInvalidOrderNumber):
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 				return
 			default:
 				w.WriteHeader(http.StatusInternalServerError)

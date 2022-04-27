@@ -103,17 +103,6 @@ var (
 		group by ub.balance
 	`
 
-	selectUserBalanceAndOrder = `
-			select
-			ub.balance,
-			orders.number
-		from users
-		left join user_balances ub on ub.id_user = users.id
-		left join orders on orders.id_user = users.id
-		where users.user_id = $1
-		and orders.number = $2
-	`
-
 	updateUserBalance = `
 		update user_balances 
 			set balance=$1 
