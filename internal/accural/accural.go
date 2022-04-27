@@ -37,5 +37,7 @@ func GetAccural(URL string) (databases.Order, error) {
 		return order, ErrAnother
 	}
 
+	log.Print("GetAccural отдает данные:", order)
+
 	return order, nil
 }
