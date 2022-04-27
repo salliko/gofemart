@@ -54,7 +54,7 @@ type Order struct {
 type AccuralOrder struct {
 	Order   string  `json:"order"`
 	Status  string  `json:"status"`
-	Accural float64 `json:"accrual,omitempty"`
+	Accural float64 `json:"accural,omitempty"`
 }
 
 type Balance struct {
