@@ -244,6 +244,8 @@ func SelectOrders(cfg config.Config, db databases.Database) http.HandlerFunc {
 			return
 		}
 
+		log.Print("SelectOrders: ", orders)
+
 		data, err := json.Marshal(orders)
 		if err != nil {
 			log.Print(err.Error())
@@ -277,6 +279,8 @@ func SelectUserBalance(cfg config.Config, db databases.Database) http.HandlerFun
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		log.Print("SelectUserBalance: ", balance)
 
 		data, err := json.Marshal(balance)
 		if err != nil {
