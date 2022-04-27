@@ -3,14 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/salliko/gofemart/config"
-	"github.com/salliko/gofemart/internal/accural"
 	"github.com/salliko/gofemart/internal/databases"
 	"github.com/salliko/gofemart/internal/datahashes"
 )
@@ -140,6 +138,7 @@ func UserAuthentication(cfg config.Config, db databases.Database) http.HandlerFu
 func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		number, err := io.ReadAll(r.Body)
+		log.Print("create order: ", string(number), "<--")
 
 		if err != nil {
 			log.Print(err.Error())
@@ -149,68 +148,68 @@ func CreateOrder(cfg config.Config, db databases.Database) http.HandlerFunc {
 			return
 		}
 
-		isValidNumber, err := checkLuhn(string(number))
-		if err != nil {
-			log.Print(err.Error())
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			w.WriteHeader(http.StatusInternalServerError)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		// isValidNumber, err := checkLuhn(string(number))
+		// if err != nil {
+		// 	log.Print(err.Error())
+		// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 
-		if !isValidNumber {
-			log.Print("неверный формат номера заказа")
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			http.Error(w, "неверный формат номера заказа", http.StatusUnprocessableEntity)
-			return
-		}
+		// if !isValidNumber {
+		// 	log.Print("неверный формат номера заказа")
+		// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		// 	w.WriteHeader(http.StatusUnprocessableEntity)
+		// 	http.Error(w, "неверный формат номера заказа", http.StatusUnprocessableEntity)
+		// 	return
+		// }
 
-		cookie, err := r.Cookie("user_id")
-		if err != nil {
-			log.Print(err.Error())
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-			w.WriteHeader(http.StatusBadRequest)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		// cookie, err := r.Cookie("user_id")
+		// if err != nil {
+		// 	log.Print(err.Error())
+		// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	http.Error(w, err.Error(), http.StatusBadRequest)
+		// 	return
+		// }
 
-		err = db.CreateOrder(string(number), cookie.Value)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		// err = db.CreateOrder(string(number), cookie.Value)
+		// if err != nil {
+		// 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-			if errors.Is(err, databases.ErrOrderWasUploadedBefore) {
-				w.WriteHeader(http.StatusOK)
-				http.Error(w, err.Error(), http.StatusOK)
-				return
-			}
-			if errors.Is(err, databases.ErrOrderWasUploadedAnotherUser) {
-				w.WriteHeader(http.StatusConflict)
-				http.Error(w, err.Error(), http.StatusConflict)
-				return
-			}
-			w.WriteHeader(http.StatusBadRequest)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		// 	if errors.Is(err, databases.ErrOrderWasUploadedBefore) {
+		// 		w.WriteHeader(http.StatusOK)
+		// 		http.Error(w, err.Error(), http.StatusOK)
+		// 		return
+		// 	}
+		// 	if errors.Is(err, databases.ErrOrderWasUploadedAnotherUser) {
+		// 		w.WriteHeader(http.StatusConflict)
+		// 		http.Error(w, err.Error(), http.StatusConflict)
+		// 		return
+		// 	}
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	http.Error(w, err.Error(), http.StatusBadRequest)
+		// 	return
+		// }
 
-		go func(userID, number string, cfg config.Config, db databases.Database) {
-			URL := fmt.Sprintf("%s/api/orders/%s", cfg.ActualSystemAddress, number)
-			order, err := accural.GetAccural(URL)
-			if err != nil {
-				log.Print(err.Error())
-				return
-			}
+		// go func(userID, number string, cfg config.Config, db databases.Database) {
+		// 	URL := fmt.Sprintf("%s/api/orders/%s", cfg.ActualSystemAddress, number)
+		// 	order, err := accural.GetAccural(URL)
+		// 	if err != nil {
+		// 		log.Print(err.Error())
+		// 		return
+		// 	}
 
-			err = db.UpdateOrder(userID, order)
-			if err != nil {
-				log.Print(err.Error())
-				return
-			}
+		// 	err = db.UpdateOrder(userID, order)
+		// 	if err != nil {
+		// 		log.Print(err.Error())
+		// 		return
+		// 	}
 
-		}(cookie.Value, string(number), cfg, db)
+		// }(cookie.Value, string(number), cfg, db)
 
-		log.Print("CreateOrder: ", string(number), " user: ", cookie.Value)
+		// log.Print("CreateOrder: ", string(number), " user: ", cookie.Value)
 
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.WriteHeader(http.StatusAccepted)
