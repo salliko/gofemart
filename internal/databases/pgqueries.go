@@ -110,8 +110,9 @@ var (
 		from users
 		left join user_balances ub on ub.id_user = users.id
 		left join orders on orders.id_user = users.id
-		where users.user_id = $1
-		and orders.number = $2
+		where 
+		/*users.user_id = $1
+		and*/ orders.number = $2
 	`
 
 	updateUserBalance = `
