@@ -52,9 +52,9 @@ type Order struct {
 }
 
 type AccuralOrder struct {
-	Order   string `json:"order"`
-	Status  string `json:"status"`
-	Accural int    `json:"accural,omitempty"`
+	Order   string  `json:"order"`
+	Status  string  `json:"status"`
+	Accural float64 `json:"accrual,omitempty"`
 }
 
 type Balance struct {
